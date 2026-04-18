@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ประเมินอาการและการดูแล</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, "Sarabun", "Prompt", sans-serif;
+    background: #f5f7fa;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 16px;
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  .container { max-width: 600px; margin: 0 auto; }
+  .header { text-align: center; padding: 16px 0 20px; }
+  .header h1 { font-size: 22px; color: #1a1a1a; margin-bottom: 6px; }
+  .header p { color: #6b7280; font-size: 14px; }
+
+  .mode-selector { display: grid; gap: 12px; margin: 16px 0; }
+  .mode-card {
+    padding: 22px; border-radius: 16px; border: 3px solid transparent;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+    gap: 16px; background: white; width: 100%; text-align: left;
+    font-family: inherit; color: inherit;
+  }
+  .mode-card:active { transform: scale(0.98); }
+  .mode-card.general { background: linear-gradient(135deg, #eff6ff, #dbeafe); border-color: #3b82f6; }
+  .mode-card.palliative { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #059669; }
+  .mode-icon { font-size: 42px; flex-shrink: 0; }
+  .mode-text { flex: 1; }
+  .mode-text h2 { font-size: 18px; margin-bottom: 4px; }
+  .mode-text p { font-size: 14px; color: #4b5563; }
+
+  .back-btn {
+    background: white; border: 1px solid #e5e7eb; padding: 10px 16px;
+    border-radius: 10px; font-size: 15px; font-family: inherit;
+    cursor: pointer; margin-bottom: 16px; color: #4b5563;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  .mode-badge {
+    display: inline-block; padding: 6px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; margin-bottom: 12px;
+  }
+  .badge-general { background: #dbeafe; color: #1e40af; }
+  .badge-palliative { background: #dcfce7; color: #166534; }
+
+  .critical-banner {
+    background: linear-gradient(135deg, #dc2626, #991b1b); color: white;
+    padding: 20px; border-radius: 16px; margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+  }
+  .critical-banner h2 { font-size: 20px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .critical-banner p { font-size: 15px; margin-bottom: 16px; opacity: 0.95; }
+
+  .call-1669 {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    background: white; color: #dc2626; padding: 18px; border-radius: 12px;
+    font-size: 22px; font-weight: 700; text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .call-1669:active { transform: scale(0.97); }
+  .call-1669 .phone-icon { font-size: 26px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+  .palliative-banner {
+    background: linear-gradient(135deg, #059669, #047857); color: white;
+    padding: 20px; border-radius: 16px; margin-bottom: 20px;
+  }
+  .palliative-banner h2 { font-size: 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .palliative-banner p { font-size: 14px; opacity: 0.95; line-height: 1.6; }
+
+  .section-title {
+    font-size: 17px; font-weight: 600; color: #374151;
+    margin: 20px 0 10px; padding-left: 4px;
+  }
+
+  .symptom-grid { display: grid; gap: 10px; }
+  .symptom-card {
+    background: white; border: 2px solid #e5e7eb; border-radius: 12px;
+    padding: 16px; cursor: pointer; transition: all 0.2s; display: flex;
+    align-items: center; gap: 12px; text-align: left; width: 100%;
+    font-family: inherit; font-size: 16px; color: #1a1a1a;
+  }
+  .symptom-card:active { transform: scale(0.98); background: #f9fafb; }
+  .symptom-card.open.general-mode { border-color: #3b82f6; background: #eff6ff; }
+  .symptom-card.open.palliative-mode { border-color: #059669; background: #f0fdf4; }
+
+  .symptom-icon { font-size: 28px; flex-shrink: 0; width: 40px; text-align: center; }
+  .symptom-text { flex: 1; font-weight: 600; font-size: 16px; }
+  .chevron { color: #9ca3af; font-size: 20px; transition: transform 0.2s; }
+  .symptom-card.open .chevron { transform: rotate(90deg); }
+
+  .content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .content.open { max-height: 3000px; }
+
+  .content-inner {
+    background: white; border: 2px solid; border-top: none;
+    border-radius: 0 0 12px 12px; margin-top: -10px; padding: 18px;
+    margin-bottom: 10px;
+  }
+  .general-mode .content-inner { border-color: #3b82f6; }
+  .palliative-mode .content-inner { border-color: #059669; }
+
+  .content-inner h3 { font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .general-mode .content-inner h3 { color: #1e40af; }
+  .palliative-mode .content-inner h3 { color: #166534; }
+
+  .content-inner ul { list-style: none; padding: 0; margin-bottom: 14px; }
+  .content-inner li {
+    padding: 7px 0 7px 22px; position: relative; font-size: 15px;
+    color: #374151; line-height: 1.6;
+  }
+  .content-inner li::before {
+    content: "•"; position: absolute; left: 8px; font-weight: bold; font-size: 18px;
+  }
+  .general-mode .content-inner li::before { color: #3b82f6; }
+  .palliative-mode .content-inner li::before { color: #059669; }
+
+  .warning-box {
+    background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px;
+    border-radius: 8px; margin: 12px 0; font-size: 14px; color: #78350f; line-height: 1.5;
+  }
+  .info-box {
+    background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 12px;
+    border-radius: 8px; margin: 12px 0; font-size: 14px; color: #0c4a6e; line-height: 1.5;
+  }
+  .comfort-box {
+    background: #fdf2f8; border-left: 4px solid #ec4899; padding: 12px;
+    border-radius: 8px; margin: 12px 0; font-size: 14px; color: #831843; line-height: 1.6;
+  }
+
+  .action-buttons { display: grid; gap: 8px; margin-top: 12px; }
+  .btn {
+    padding: 13px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    border: none; cursor: pointer; font-family: inherit; text-decoration: none;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-emergency { background: #dc2626; color: white; }
+  .btn-nurse { background: #059669; color: white; }
+  .btn-cm { background: #7c3aed; color: white; }
+
+  .disclaimer {
+    background: #fffbeb; border: 1px solid #fbbf24; border-radius: 12px;
+    padding: 14px; margin-top: 24px; font-size: 13px; color: #78350f; line-height: 1.5;
+  }
+  .disclaimer strong { display: block; margin-bottom: 4px; color: #92400e; }
+
+  .footer { text-align: center; padding: 20px 0; color: #9ca3af; font-size: 12px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div id="screen-mode">
+    <div class="header">
+      <h1>🙏 ประเมินอาการและการดูแล</h1>
+      <p>กรุณาเลือกสถานะของผู้สูงอายุที่ดูแล</p>
+    </div>
+
+    <div class="mode-selector">
+      <button class="mode-card general" onclick="selectMode('general')">
+        <span class="mode-icon">🏥</span>
+        <span class="mode-text">
+          <h2>ดูแลทั่วไป / ฟื้นฟู</h2>
+          <p>ยังรักษาตามแผน มุ่งฟื้นฟูสุขภาพ</p>
+        </span>
+      </button>
+
+      <button class="mode-card palliative" onclick="selectMode('palliative')">
+        <span class="mode-icon">🕊️</span>
+        <span class="mode-text">
+          <h2>ระยะประคับประคอง</h2>
+          <p>Palliative care / เตรียมจากไปอย่างสงบ</p>
+        </span>
+      </button>
+    </div>
+
+    <div class="info-box" style="margin-top: 20px;">
+      <strong>💡 ไม่แน่ใจว่าเลือกแบบไหน?</strong><br>
+      หากผู้สูงอายุมีแผนการดูแลแบบประคับประคอง (Palliative Care Plan) หรือมีหนังสือแสดงเจตนา (Living Will) ให้เลือก "ระยะประคับประคอง"
+      <br><br>
+      หากยังไม่แน่ใจ ให้ปรึกษาพยาบาลประจำ รพ.สต. ก่อน
+    </div>
+  </div>
+
+  <div id="screen-general" class="hidden">
+    <button class="back-btn" onclick="goBack()">‹ เปลี่ยนสถานะ</button>
+    <span class="mode-badge badge-general">🏥 โหมด: ดูแลทั่วไป</span>
+
+    <div class="critical-banner">
+      <h2>⚠️ เหตุฉุกเฉินวิกฤต</h2>
+      <p>หมดสติ • หายใจลำบากมาก • ชัก • เจ็บหน้าอกรุนแรง • พูดไม่ชัดฉับพลัน • อ่อนแรงครึ่งซีก • เลือดออกไม่หยุด</p>
+      <a href="tel:1669" class="call-1669">
+        <span class="phone-icon">📞</span>
+        <span>โทร 1669 ทันที</span>
+      </a>
+    </div>
+
+    <div class="section-title">🔍 อาการอื่นๆ (แตะเพื่อดูคำแนะนำ)</div>
+    <div class="symptom-grid" id="general-symptoms"></div>
+  </div>
+
+  <div id="screen-palliative" class="hidden">
+    <button class="back-btn" onclick="goBack()">‹ เปลี่ยนสถานะ</button>
+    <span class="mode-badge badge-palliative">🕊️ โหมด: ระยะประคับประคอง</span>
+
+    <div class="palliative-banner">
+      <h2>🌸 การดูแลอย่างสงบ</h2>
+      <p>เป้าหมายคือ<strong>ความสบาย ไม่เจ็บปวด และจากไปอย่างมีศักดิ์ศรี</strong> ไม่ใช่การยื้อชีวิต</p>
+      <p style="margin-top: 10px;">หากครอบครัวเปลี่ยนใจ สามารถโทร 1669 ได้เสมอ</p>
+    </div>
+
+    <div class="comfort-box">
+      <strong>💗 หลัก Good Death</strong><br>
+      • ไม่เจ็บปวด<br>
+      • มีครอบครัวอยู่ข้างๆ<br>
+      • ได้อยู่ในสถานที่ที่ต้องการ<br>
+      • ได้สั่งเสีย ทำในสิ่งที่ค้างคา<br>
+      • มีสติ รู้ตัว (เท่าที่เป็นไปได้)<br>
+      • ได้รับการดูแลทางจิตวิญญาณตามความเชื่อ
+    </div>
+
+    <div class="section-title">🌿 อาการระยะสุดท้าย (แตะเพื่อดูคำแนะนำ)</div>
+    <div class="symptom-grid" id="palliative-symptoms"></div>
+  </div>
+
+  <div class="disclaimer" id="disclaimer" style="display: none;">
+    <strong>⚠️ ข้อควรทราบ</strong>
+    ระบบนี้เป็นเครื่องมือช่วยประเมินเบื้องต้นเท่านั้น ไม่ทดแทนการวินิจฉัยหรือคำแนะนำของบุคลากรทางการแพทย์ หากไม่แน่ใจ ให้ปรึกษาพยาบาลประจำ รพ.สต. ของท่าน
+  </div>
+
+  <div class="footer">
+    พัฒนาโดย รพ.สต. • สำหรับผู้ดูแลผู้สูงอายุที่มีภาวะพึ่งพิง
+  </div>
+</div>
+
+<script>
+  const generalSymptoms = [
+    { icon: '😮‍💨', title: 'หายใจเหนื่อย / หอบ',
+      content: {
+        actions: ['จัดท่านั่งหัวสูง หนุนหมอน 2-3 ใบ','คลายเสื้อผ้าให้หลวม เปิดหน้าต่างระบายอากาศ','นับอัตราการหายใจ (ปกติ 16-20 ครั้ง/นาที)','สังเกตสีริมฝีปาก ปลายมือปลายเท้า','ถ้ามีเครื่องวัดออกซิเจน → วัด SpO2 (ปกติ ≥ 95%)'],
+        warning: 'รีบโทร 1669 ถ้า: หายใจเร็ว > 30 ครั้ง/นาที • ริมฝีปากเขียว • SpO2 < 90% • พูดไม่จบประโยค',
+        buttons: ['emergency','nurse'] } },
+    { icon: '🤒', title: 'ไข้สูง / อาเจียน / ถ่ายเหลว',
+      content: {
+        actions: ['วัดอุณหภูมิ จดไว้ทุก 2 ชั่วโมง','เช็ดตัวด้วยน้ำอุณหภูมิห้อง ถ้าไข้ > 38.5°C','ให้จิบน้ำบ่อยๆ ทีละน้อย ป้องกันขาดน้ำ','นับจำนวนครั้งที่อาเจียน/ถ่ายเหลว','สังเกตสีปัสสาวะ ถ้าเข้มมาก = ขาดน้ำ'],
+        warning: 'รีบพบแพทย์ ถ้า: ไข้ > 39°C ไม่ลด • อาเจียนเกิน 5 ครั้ง/6 ชม. • ถ่ายเหลวมีเลือด • ซึมมากขึ้น • ไม่ปัสสาวะเกิน 8 ชม.',
+        buttons: ['emergency','nurse'] } },
+    { icon: '🤕', title: 'ล้ม / บาดเจ็บ',
+      content: {
+        actions: ['**อย่ารีบยก!** ถามความรู้สึกตัวก่อน','ถามว่าปวดตรงไหน ขยับแขนขาได้ไหม','สังเกตศีรษะ ถ้ากระแทก = เสี่ยงเลือดออกในสมอง','ดูบาดแผล รอยฟกช้ำ','ถ้าสงสัยกระดูกหัก ห้ามขยับ รอ 1669'],
+        warning: '🚨 โทร 1669 ทันที ถ้า: หมดสติแม้ชั่วขณะ • ศีรษะกระแทก • ขยับแขนขาไม่ได้ • ปวดมาก • อาเจียนหลังล้ม • สับสน',
+        buttons: ['emergency','nurse'] } },
+    { icon: '😵', title: 'สับสน / ซึมลง / เรียกไม่ค่อยตื่น',
+      content: {
+        actions: ['เรียกชื่อ ถามวันเวลา สถานที่ ดูการตอบสนอง','ถ้าเป็นเบาหวาน → เจาะน้ำตาลปลายนิ้ว','วัดไข้ วัดความดัน ถ้าทำได้','สังเกตการหายใจ สีริมฝีปาก','ดูว่ากินยาครบไหม หรือกินผิดขนาด'],
+        warning: '🚨 โทร 1669 ทันที ถ้า: เรียกไม่ตื่น • หายใจผิดปกติ • น้ำตาล < 70 หรือ > 300 • พูดไม่ชัด • อ่อนแรงครึ่งซีก',
+        buttons: ['emergency','nurse'] } },
+    { icon: '🩹', title: 'แผลกดทับแย่ลง',
+      content: {
+        actions: ['สังเกตขนาด สี กลิ่น ของแผล ถ่ายรูปเก็บไว้','ทำความสะอาดด้วยน้ำเกลือ Normal saline','พลิกตัวทุก 2 ชั่วโมง ลดแรงกดที่แผล','ใช้หมอนรอง ไม่ให้แผลถูกกดทับ','วัดไข้ ถ้ามีไข้ = อาจติดเชื้อ'],
+        warning: 'รีบแจ้งพยาบาล ถ้า: แผลมีหนอง • กลิ่นเหม็น • ขอบแผลแดงร้อน • มีไข้ • แผลลึกขึ้น/ใหญ่ขึ้น',
+        buttons: ['nurse'] } },
+    { icon: '🍽️', title: 'กลืนลำบาก / สำลัก',
+      content: {
+        actions: ['จัดท่านั่งหัวสูง 90 องศา ขณะกิน','ให้อาหารอ่อน ข้น ไม่เหลวเกินไป','ป้อนช้าๆ ทีละคำเล็ก','ให้เวลาเคี้ยว กลืน ก่อนป้อนคำต่อไป','หลังกิน นั่งต่อ 30 นาที ก่อนเอนนอน'],
+        warning: '🚨 ถ้าสำลักและหายใจไม่ออก → ทำ Heimlich + โทร 1669 ทันที\n\nแจ้งพยาบาล ถ้า: สำลักบ่อย • ไอเวลากิน • มีไข้หลังกิน (เสี่ยง aspiration pneumonia)',
+        buttons: ['emergency','nurse'] } },
+    { icon: '💧', title: 'ปัสสาวะผิดปกติ',
+      content: {
+        actions: ['จดจำนวนและปริมาณปัสสาวะใน 24 ชม.','สังเกตสี กลิ่น ตะกอน','ถ้ามีสายสวน → ดูว่าสายไม่หัก ไม่งอ','ให้ดื่มน้ำเพียงพอ (ถ้าไม่มีข้อห้าม)','เช็ดทำความสะอาดอวัยวะเพศให้สะอาด'],
+        warning: 'แจ้งพยาบาล ถ้า: ไม่ปัสสาวะเกิน 8 ชม. • ปัสสาวะมีเลือด • ปวดแสบมาก • ไข้ร่วมด้วย • สายสวนหลุด/ตัน',
+        buttons: ['emergency','nurse'] } },
+    { icon: '🚽', title: 'ท้องผูก > 3 วัน',
+      content: {
+        actions: ['ให้ดื่มน้ำอุ่นมากขึ้น (ถ้าไม่มีข้อห้าม)','เพิ่มผัก ผลไม้ ใยอาหารในมื้ออาหาร','นวดท้องเบาๆ ตามเข็มนาฬิกา','ช่วยพลิกตัว ลุกนั่ง ถ้าทำได้','จดวันที่ถ่ายล่าสุด และลักษณะอุจจาระ'],
+        warning: 'แจ้งพยาบาล ถ้า: ไม่ถ่ายเกิน 5 วัน • ปวดท้องมาก • ท้องแข็ง • อาเจียน • มีเลือดปน',
+        buttons: ['nurse'] } },
+    { icon: '🩸', title: 'น้ำตาลในเลือดผิดปกติ (เบาหวาน)',
+      content: {
+        actions: ['**น้ำตาลต่ำ (< 70):** ให้น้ำหวาน/น้ำผึ้ง 1 ช้อนโต๊ะ','รอ 15 นาที เจาะใหม่','**น้ำตาลสูง (> 250):** ให้ดื่มน้ำเปล่ามากๆ','ตรวจยาที่กิน/ฉีด ว่าถูกต้องไหม','สังเกตอาการ ซึม สับสน หายใจหอบ กลิ่นผลไม้จากปาก'],
+        warning: '🚨 โทร 1669 ถ้า: หมดสติ • น้ำตาล < 50 หรือ > 400 • ซึมมาก • หายใจหอบ (DKA) • กินดื่มไม่ได้',
+        buttons: ['emergency','nurse'] } },
+    { icon: '🦵', title: 'บวมขา / ปวดน่อง',
+      content: {
+        actions: ['สังเกตว่าบวมข้างเดียวหรือสองข้าง','วัดรอบน่องเทียบ 2 ข้าง','ดูสี ผิว อุณหภูมิ มีแดงร้อนไหม','ยกขาสูง หนุนหมอน','ไม่นวดบริเวณที่บวมแดง (เสี่ยงลิ่มเลือดหลุด)'],
+        warning: '🚨 รีบพบแพทย์ ถ้า: บวมข้างเดียว + แดง + ร้อน + ปวด (เสี่ยง DVT) • หายใจเหนื่อยร่วมด้วย (เสี่ยง PE)',
+        buttons: ['emergency','nurse'] } },
+    { icon: '🧴', title: 'สายสวน / สาย NG / สายให้อาหาร ผิดปกติ',
+      content: {
+        actions: ['**สายหลุด:** ห้ามใส่กลับเอง → แจ้งพยาบาล','**สายตัน:** ลองล้างด้วยน้ำอุ่น ถ้าไม่ได้ → แจ้งพยาบาล','**เลือดออกรอบสาย:** กดห้ามเลือด → แจ้งพยาบาล','ก่อนให้อาหารทางสาย NG → เช็คตำแหน่งสาย','รักษาความสะอาดรอบสายเสมอ'],
+        warning: 'แจ้งพยาบาลทันที ถ้า: สายหลุด • สายตันไม่ไหล • เลือดออกมาก • หายใจลำบากหลังให้อาหาร',
+        buttons: ['emergency','nurse'] } },
+    { icon: '🔥', title: 'ชักเกร็ง',
+      content: {
+        actions: ['จัดให้นอนตะแคง ป้องกันสำลัก','เอาของแข็งรอบตัวออก ป้องกันบาดเจ็บ','**ห้าม**งัดปาก ห้ามเอาของใส่ปาก','**ห้าม**จับยึดแขนขา','จับเวลา ดูว่าชักนานกี่นาที','สังเกตลักษณะชัก เพื่อบอกแพทย์'],
+        warning: '🚨 โทร 1669 ทันที ถ้า: ชักนานเกิน 5 นาที • ชักซ้ำไม่ฟื้นระหว่าง • ชักครั้งแรกในชีวิต • บาดเจ็บจากการชัก',
+        buttons: ['emergency','nurse'] } },
+    { icon: '❓', title: 'อาการอื่นๆ ที่กังวล',
+      content: {
+        actions: ['อธิบายอาการที่พบให้ชัดเจน','บอกระยะเวลาที่เริ่มเป็น','ถ่ายรูป/วิดีโอถ้าทำได้','จดสิ่งที่เปลี่ยนแปลงจากปกติ','วัดไข้ ความดัน ชีพจร ถ้าทำได้'],
+        buttons: ['nurse'] } }
+  ];
+
+  const palliativeSymptoms = [
+    { icon: '🌬️', title: 'หายใจผิดปกติ / Cheyne-Stokes',
+      content: {
+        info: 'ระยะสุดท้ายมักหายใจเป็นช่วงๆ หยุดสลับกัน เป็นเรื่องปกติของการจากไป ไม่ใช่ภาวะฉุกเฉิน',
+        actions: ['จัดท่านอนตะแคง หรือหัวสูงเล็กน้อย','เปิดพัดลมเบาๆ ให้อากาศถ่ายเท','เช็ดหน้า เช็ดตัวด้วยผ้าชุบน้ำเย็น','พูดคุย ร้องเพลง สวดมนต์เบาๆ ข้างหู','จับมือ ลูบหน้า ให้ความอบอุ่น'],
+        comfort: '🌸 ช่วงนี้ผู้ป่วยยังได้ยินเสียง การได้ยินเป็นประสาทสัมผัสสุดท้ายที่จากไป พูดคำที่อยากบอก อย่ารอ',
+        buttons: ['cm'] } },
+    { icon: '😮', title: 'เสียงครืดคราดในลำคอ (Death Rattle)',
+      content: {
+        info: 'เสียงนี้เกิดจากน้ำลายสะสมในลำคอ ผู้ป่วยมักไม่ทรมาน แต่ครอบครัวอาจกังวล',
+        actions: ['จัดท่านอนตะแคง ให้น้ำลายไหลออก','เช็ดน้ำลายรอบปากเบาๆ ด้วยผ้าสะอาด','**ห้ามดูดเสมหะแรงๆ** จะทำให้ทรมาน','ไม่ต้องให้อาหาร/น้ำทางปาก จะยิ่งเพิ่มเสมหะ','ใช้ผ้าชุบน้ำเช็ดปาก ริมฝีปาก ให้ชุ่ม'],
+        comfort: '🌸 เสียงนี้เป็นสัญญาณธรรมชาติของการเข้าสู่ช่วงสุดท้าย ครอบครัวควรเตรียมใจ และอยู่ข้างๆ ท่าน',
+        buttons: ['cm'] } },
+    { icon: '🥶', title: 'มือเท้าเย็น สีคล้ำ (Mottling)',
+      content: {
+        info: 'เมื่อร่างกายเริ่มหยุดทำงาน เลือดจะไปเลี้ยงอวัยวะสำคัญก่อน ปลายมือเท้าจึงเย็นและคล้ำ เป็นสัญญาณว่าเวลาใกล้แล้ว',
+        actions: ['ห่มผ้าอุ่น แต่ไม่หนักเกินไป','ไม่ต้องใช้กระเป๋าน้ำร้อน (ผิวบางอาจพุพอง)','นวดเบาๆ ที่มือ เท้า ด้วยโลชั่น','จับมือ ให้ความอบอุ่นจากสัมผัส','แจ้งญาติให้รวมตัว หากยังไม่มา'],
+        comfort: '🌸 นี่คือช่วงเวลาสำคัญที่ครอบครัวควรอยู่พร้อมหน้า กล่าวคำสั่งเสีย ขออโหสิกรรม ให้อภัย กล่าวรัก',
+        buttons: ['cm'] } },
+    { icon: '🍽️', title: 'ไม่กิน ไม่ดื่ม',
+      content: {
+        info: 'ในระยะสุดท้าย ร่างกายไม่ต้องการอาหารน้ำเหมือนเดิม การบังคับให้กินอาจทำให้สำลัก ทรมาน และไม่ยืดชีวิต',
+        actions: ['**ไม่ต้องบังคับให้กิน** ร่างกายไม่ต้องการแล้ว','ใช้ผ้าชุบน้ำเช็ดริมฝีปากให้ชุ่ม','ใช้สำลีชุบน้ำแตะในปาก ให้ความชุ่มชื้น','ทาลิปมันป้องกันปากแห้ง แตก','ถ้าผู้ป่วยยังรู้สึกตัว ถามว่าอยากกินอะไรไหม'],
+        comfort: '🌸 การไม่กินในระยะนี้ไม่ใช่ "อดอาหาร" แต่เป็นกระบวนการธรรมชาติของการจากไป อย่ารู้สึกผิด',
+        buttons: ['cm'] } },
+    { icon: '💔', title: 'ปวดจัดการไม่ได้',
+      content: {
+        info: 'ความเจ็บปวดเป็นสิ่งที่ต้องจัดการทันที ไม่ควรปล่อยให้ผู้ป่วยทรมาน — นี่คือหัวใจของ good death',
+        actions: ['ให้ยาแก้ปวดตามแผนที่แพทย์/ทีม palliative สั่ง','จดเวลาที่ให้ยา และระดับความปวด (0-10)','จัดท่าให้สบาย ใช้หมอนรอง','นวดเบาๆ บริเวณที่ไม่ปวด','เปิดเพลง สวดมนต์ ลดความทรมาน'],
+        warning: '🔴 ปวดไม่ทุเลาหลังให้ยา → ติดต่อทีม palliative / Care Manager ทันที อย่ารอ ไม่ต้องเกรงใจ',
+        buttons: ['cm','nurse'] } },
+    { icon: '😰', title: 'กระสับกระส่าย / Delirium',
+      content: {
+        info: 'ผู้ป่วยอาจเห็นภาพหลอน พูดคนเดียว เรียกชื่อคนที่เสียไปแล้ว เป็นเรื่องปกติในระยะสุดท้าย',
+        actions: ['จัดห้องให้เงียบ แสงอ่อนๆ','พูดด้วยน้ำเสียงนุ่มนวล เรียกชื่อบ่อยๆ','จับมือ ลูบตัวเบาๆ ให้รู้สึกปลอดภัย','อย่าเถียง อย่าขัด สิ่งที่ผู้ป่วยเห็น','ถ้ามีคนที่ผู้ป่วยเรียกหา ให้พามาหา'],
+        comfort: '🌸 หลายวัฒนธรรมเชื่อว่าการเห็น "คนที่จากไปแล้ว" คือสัญญาณว่าใกล้เวลา ให้ครอบครัวเตรียมใจ อยู่ใกล้ๆ',
+        warning: 'ถ้ากระสับกระส่ายมาก ทำร้ายตัวเอง → แจ้งทีม palliative เพื่อปรับยา',
+        buttons: ['cm'] } },
+    { icon: '💧', title: 'ปัสสาวะน้อย / สีเข้ม',
+      content: {
+        info: 'ไตเริ่มหยุดทำงาน เป็นสัญญาณว่าอวัยวะต่างๆ เริ่มปิดตัว',
+        actions: ['ไม่ต้องบังคับให้ดื่มน้ำ','ใช้ผ้าอ้อมผู้ใหญ่ เปลี่ยนเมื่อเปียก','เช็ดทำความสะอาดเบาๆ ป้องกันผิวอักเสบ','ทาครีมป้องกันผื่น','สังเกตการหายใจ สีผิว ร่วมด้วย'],
+        comfort: '🌸 นี่คือสัญญาณที่บ่งบอกว่าเวลาเหลือไม่มาก เป็นช่วงที่ครอบครัวควรอยู่ด้วยกัน',
+        buttons: ['cm'] } },
+    { icon: '👁️', title: 'ตาลอย / ไม่โฟกัส',
+      content: {
+        info: 'ในระยะสุดท้าย การมองเห็นจะค่อยๆ หายไป ตาอาจเปิดค้างหรือเหม่อลอย',
+        actions: ['ถ้าตาเปิดค้าง ให้ใช้ผ้าชุบน้ำสะอาดเช็ดเบาๆ','หยอดน้ำตาเทียม ถ้ามี (ป้องกันตาแห้ง)','พูดบอกว่าใครอยู่ตรงนี้บ้าง','จับมือ ให้รู้สึกถึงการมีอยู่','ไม่ต้องกลัว ให้ท่านได้พักสายตา'],
+        comfort: '🌸 แม้จะไม่โฟกัส แต่ผู้ป่วยยังรับรู้การสัมผัสและเสียงของคนที่รัก',
+        buttons: ['cm'] } },
+    { icon: '🙏', title: 'ดูแลจิตวิญญาณ / Spiritual Care',
+      content: {
+        info: 'การดูแลจิตใจสำคัญไม่แพ้การดูแลร่างกาย ตามความเชื่อของแต่ละศาสนา',
+        actions: ['**พุทธ:** นิมนต์พระสวดมนต์ เปิดเสียงสวด','**คริสต์:** เชิญบาทหลวง/ศิษยาภิบาล อ่านพระคัมภีร์','**อิสลาม:** อ่านอัลกุรอาน หันหน้าไปทางกิบลัต','จัดสภาพแวดล้อมให้สงบ','ให้โอกาสสั่งเสีย ขออโหสิกรรม ให้อภัย'],
+        comfort: '🌸 <strong>5 สิ่งก่อนจากไป (ตามแนวคิด palliative):</strong><br>1. ขอโทษ<br>2. ให้อภัย<br>3. ขอบคุณ<br>4. บอกรัก<br>5. ลาก่อน',
+        buttons: ['cm'] } },
+    { icon: '💔', title: 'เมื่อท่านจากไปแล้ว',
+      content: {
+        info: 'เมื่อผู้ป่วยจากไปอย่างสงบที่บ้านตามแผน palliative — ไม่ต้องรีบ ไม่ต้องตกใจ',
+        actions: ['**อย่าโทร 1669** (ถ้าวางแผน palliative ที่บ้าน)','นั่งอยู่ข้างๆ ท่าน สักครู่ ทำใจ','แจ้ง Care Manager / พยาบาลประจำ','รวมครอบครัว ร่วมกันกล่าวอำลา','พยาบาลจะมาตรวจและออกใบรับรอง'],
+        comfort: '🌸 การที่ท่านได้จากไปอย่างสงบที่บ้าน ท่ามกลางครอบครัว คือความสำเร็จของการดูแล palliative<br><br>คุณทำดีที่สุดแล้ว ขอบคุณที่ดูแลท่าน',
+        warning: 'ถ้าไม่แน่ใจ หรือเปลี่ยนใจ โทร Care Manager ก่อน',
+        buttons: ['cm'] } },
+    { icon: '❓', title: 'อาการอื่นๆ / ไม่แน่ใจ',
+      content: {
+        info: 'ในระยะ palliative ทุกอาการที่ไม่แน่ใจ ปรึกษาทีม palliative ได้เสมอ ไม่ต้องรอให้เป็นเยอะ',
+        actions: ['จดอาการที่สังเกตเห็น','ถ่ายรูป/วิดีโอถ้าช่วยอธิบายได้','วัดสัญญาณชีพถ้าทำได้','ปรึกษา Care Manager','ดูแลผู้ป่วยให้สบายที่สุด'],
+        buttons: ['cm','nurse'] } }
+  ];
+
+  function renderSymptoms(list, containerId, mode) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = list.map((s) => `
+      <button class="symptom-card ${mode}-mode" onclick="toggle(this)">
+        <span class="symptom-icon">${s.icon}</span>
+        <span class="symptom-text">${s.title}</span>
+        <span class="chevron">›</span>
+      </button>
+      <div class="content ${mode}-mode">
+        <div class="content-inner">
+          ${s.content.info ? `<div class="info-box">${s.content.info}</div>` : ''}
+          <h3>📋 สิ่งที่ควรทำ</h3>
+          <ul>
+            ${s.content.actions.map(a => `<li>${a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`).join('')}
+          </ul>
+          ${s.content.warning ? `<div class="warning-box"><strong>⚠️ ข้อควรระวัง</strong><br>${s.content.warning}</div>` : ''}
+          ${s.content.comfort ? `<div class="comfort-box">${s.content.comfort}</div>` : ''}
+          <div class="action-buttons">
+            ${s.content.buttons.includes('emergency') ? `<a href="tel:1669" class="btn btn-emergency">📞 โทร 1669</a>` : ''}
+            ${s.content.buttons.includes('nurse') ? `<button class="btn btn-nurse" onclick="notifyNurse('${s.title}')">💬 แจ้งพยาบาลประจำ</button>` : ''}
+            ${s.content.buttons.includes('cm') ? `<button class="btn btn-cm" onclick="notifyCM('${s.title}')">💜 ติดต่อ Care Manager</button>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderSymptoms(generalSymptoms, 'general-symptoms', 'general');
+  renderSymptoms(palliativeSymptoms, 'palliative-symptoms', 'palliative');
+
+  function selectMode(mode) {
+    document.getElementById('screen-mode').classList.add('hidden');
+    document.getElementById('disclaimer').style.display = 'block';
+    if (mode === 'general') {
+      document.getElementById('screen-general').classList.remove('hidden');
+    } else {
+      document.getElementById('screen-palliative').classList.remove('hidden');
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function goBack() {
+    document.getElementById('screen-general').classList.add('hidden');
+    document.getElementById('screen-palliative').classList.add('hidden');
+    document.getElementById('disclaimer').style.display = 'none';
+    document.getElementById('screen-mode').classList.remove('hidden');
+    window.scrollTo(0, 0);
+  }
+
+  function toggle(btn) {
+    const content = btn.nextElementSibling;
+    const isOpen = btn.classList.contains('open');
+    document.querySelectorAll('.symptom-card').forEach(c => c.classList.remove('open'));
+    document.querySelectorAll('.content').forEach(c => c.classList.remove('open'));
+    if (!isOpen) {
+      btn.classList.add('open');
+      content.classList.add('open');
+      setTimeout(() => btn.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }
+
+  function notifyNurse(symptom) {
+    alert(`✅ แจ้งพยาบาลประจำแล้ว\n\nอาการ: ${symptom}\nเวลา: ${new Date().toLocaleString('th-TH')}\n\nรอพยาบาลติดต่อกลับ`);
+  }
+
+  function notifyCM(symptom) {
+    alert(`💜 ติดต่อ Care Manager แล้ว\n\nอาการ: ${symptom}\nเวลา: ${new Date().toLocaleString('th-TH')}\n\nทีม palliative จะติดต่อกลับในไม่ช้า`);
+  }
+</script>
+</body>
+</html>
